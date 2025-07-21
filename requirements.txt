@@ -1,6 +1,5 @@
-pip>=23.1.2
-setuptools>=65.5.0
-wheel>=0.38.4
+setuptools
+wheel
 numpy==1.23.5
 scipy
 Flask
