@@ -1,0 +1,3 @@
+build:
+  preinstall:
+    - pip install --upgrade pip setuptools wheel
