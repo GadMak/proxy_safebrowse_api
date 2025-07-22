@@ -1,6 +1,8 @@
-flask
+Flask
 flask-cors
 numpy
 pandas
 scikit-learn
+smtplib ; [optionnel, mais déjà standard lib]
+email   ; [optionnel, mais déjà standard lib]
 gunicorn
