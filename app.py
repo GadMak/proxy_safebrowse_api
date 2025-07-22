@@ -44,12 +44,12 @@ def predict():
     }
     return jsonify(result)
 
-# === Partie Email ===
-YOUR_EMAIL = "gadmakengi@gmail.com"
-SMTP_SERVER = "smtp.gmail.com"
-SMTP_PORT = 587
-SMTP_LOGIN = "gadmakengi@gmail.com"
-SMTP_PASSWORD = "SafeBrowse-AI2025"  # !! Utilise un mot de passe d'application, pas le mot de passe normal Gmail !!
+# === Partie Email (toutes les infos depuis les variables d'environnement) ===
+YOUR_EMAIL    = os.environ.get("YOUR_EMAIL")
+SMTP_SERVER   = os.environ.get("SMTP_SERVER")
+SMTP_PORT     = int(os.environ.get("SMTP_PORT", 587))
+SMTP_LOGIN    = os.environ.get("SMTP_LOGIN")
+SMTP_PASSWORD = os.environ.get("SMTP_PASSWORD")
 
 @app.route('/report-false-positive', methods=['POST'])
 def report_false_positive():
