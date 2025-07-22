@@ -1,21 +1,24 @@
+# app.py
+
 from flask import Flask, request, jsonify
+from flask_cors import CORS
 import pickle
 import numpy as np
-import pandas as pd
+import os
+from email.message import EmailMessage
+import smtplib
 
 app = Flask(__name__)
+CORS(app)
 
-# Liste EXACTE des colonnes/features utilisées pour entraîner le modèle
+# === Partie IA ===
 FEATURE_COLS = [
-    # Remplace cette liste par la tienne !
     "URLSimilarityIndex", "CharContinuationRate", "URLCharProb", "SpacialCharRatioInURL",
-    "IsHTTPS", "HasTitle","DomainTitleMatchScore", "URLTitleMatchScore", "HasFavicon", 
-    "IsResponsive", "HasDescription","HasSocialNet", "HasSubmitButton", "HasHiddenFields",
+    "IsHTTPS", "HasTitle", "DomainTitleMatchScore", "URLTitleMatchScore", "HasFavicon",
+    "IsResponsive", "HasDescription", "HasSocialNet", "HasSubmitButton", "HasHiddenFields",
     "HasCopyrightInfo"
-    # ... mets la liste exacte trouvée dans "Colonnes utilisées pour l'apprentissage"
 ]
 
-# Charge le modèle
 with open("model.pkl", "rb") as f:
     clf = pickle.load(f)
 
@@ -26,29 +29,48 @@ def home():
 @app.route("/predict", methods=["POST"])
 def predict():
     data = request.get_json()
-    # --- CAS 1 : Une URL à featuriser ---
-    if "url" in data:
-        url = data["url"]
-        # ... ICI: il faut appeler un code de featurisation pour transformer l’URL en liste de features ...
-        # Pour l’instant, simule (à adapter plus tard)
-        return jsonify({"error": "Feature extraction from URL not implemented in this exemple"}), 501
-
-    # --- CAS 2 : On reçoit directement la liste de features ---
     features = data.get("features")
     if not features or len(features) != len(FEATURE_COLS):
-        return jsonify({"error": f"Veuillez envoyer {len(FEATURE_COLS)} features dans le bon ordre : {FEATURE_COLS}"}), 400
+        return jsonify({"error": f"Veuillez envoyer {len(FEATURE_COLS)} features dans le bon ordre : {FEATURE_COLS}"}), 400
 
     x = np.array(features).reshape(1, -1)
     y_pred = clf.predict(x)[0]
     y_proba = clf.predict_proba(x)[0].tolist()
-
     result = {
-        "is_phishing": int(y_pred == 1),  # Ou -1 selon ton dataset (vérifie bien la valeur)
-        "proba_phishing": y_proba[1],     # La proba de classe "1"
-        "proba_safe": y_proba[0],         # La proba de classe "0"
+        "is_phishing": int(y_pred == 1),
+        "proba_phishing": y_proba[1],
+        "proba_safe": y_proba[0],
         "features": features
     }
     return jsonify(result)
 
+# === Partie Email ===
+YOUR_EMAIL = "gadmakengi@gmail.com"
+SMTP_SERVER = "smtp.gmail.com"
+SMTP_PORT = 587
+SMTP_LOGIN = "gadmakengi@gmail.com"
+SMTP_PASSWORD = "SafeBrowse-AI2025"  # !! Utilise un mot de passe d'application, pas le mot de passe normal Gmail !!
+
+@app.route('/report-false-positive', methods=['POST'])
+def report_false_positive():
+    data = request.json
+    site = data.get('site', 'Non renseigné')
+    user_message = f"Le site {site} est signalé faux positif."
+    msg = EmailMessage()
+    msg['Subject'] = "Signalement Faux Positif SafeBrowse AI"
+    msg['From'] = SMTP_LOGIN
+    msg['To'] = YOUR_EMAIL
+    msg.set_content(user_message)
+    try:
+        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
+            server.starttls()
+            server.login(SMTP_LOGIN, SMTP_PASSWORD)
+            server.send_message(msg)
+        return {"success": True}
+    except Exception as e:
+        print(e)
+        return {"success": False, "error": str(e)}, 500
+
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0')
+    port = int(os.environ.get("PORT", 5000))
+    app.run(debug=True, host='0.0.0.0', port=port)
