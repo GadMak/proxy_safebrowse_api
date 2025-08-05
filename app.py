@@ -4,6 +4,7 @@ import pickle
 import numpy as np
 import os
 import requests
+import datetime   # ✅ Ajouté pour l'horodatage
 
 app = Flask(__name__)
 CORS(app)
@@ -42,14 +43,18 @@ def predict():
     return jsonify(result)
 
 # === Partie Signalement Discord ===
-DISCORD_WEBHOOK_URL = os.environ.get("DISCORD_WEBHOOK_URL") or "https://discord.com/api/webhooks/1401747675845492858/UNJgNglUvTa27M-TuKEm4UqeDfl04lA0gAO0zi-MGsIczMO__eSAkcMK1JNnwTPmo509"
+DISCORD_WEBHOOK_URL = os.environ.get("DISCORD_WEBHOOK_URL")
 
 @app.route('/report-false-positive', methods=['POST'])
 def report_false_positive():
     data = request.json
     site = data.get('site', 'Non renseigné')
-    print(f"Signalement reçu pour : {site}")
-    user_message = f"🚨 Faux positif signalé sur SafeBrowse AI : **{site}**"
+    now = datetime.datetime.now().strftime('%d/%m/%Y %H:%M')
+    print(f"Signalement reçu pour : {site} ({now})")
+    user_message = (
+        f"🚨 Faux positif signalé sur SafeBrowse AI : **{site}**\n"
+        f"🕒 {now}"
+    )
     try:
         r = requests.post(DISCORD_WEBHOOK_URL, json={"content": user_message})
         if r.status_code in (200, 204):
