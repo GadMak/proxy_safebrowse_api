@@ -3,6 +3,9 @@ flask-cors
 numpy
 pandas
 scikit-learn
-smtplib ; [optionnel, mais déjà standard lib]
-email   ; [optionnel, mais déjà standard lib]
 gunicorn
+
+# Remarques :
+# - smtplib et email sont déjà inclus dans la bibliothèque standard de Python,
+#   donc inutile (et interdit) de les mettre dans requirements.txt.
+# - Les lignes de commentaires commencent par # (et jamais par ; ou [ ).
