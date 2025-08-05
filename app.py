@@ -4,7 +4,7 @@ import pickle
 import numpy as np
 import os
 import requests
-import datetime   # ✅ Ajouté pour l'horodatage
+import datetime
 
 app = Flask(__name__)
 CORS(app)
@@ -42,21 +42,30 @@ def predict():
     }
     return jsonify(result)
 
-# === Partie Signalement Discord ===
+# === Partie Signalement Discord personnalisée ===
 DISCORD_WEBHOOK_URL = os.environ.get("DISCORD_WEBHOOK_URL")
 
 @app.route('/report-false-positive', methods=['POST'])
 def report_false_positive():
     data = request.json
     site = data.get('site', 'Non renseigné')
+    type_fp = data.get('type', 'autre')  # <-- "phishing", "adulte", ou autre
     now = datetime.datetime.now().strftime('%d/%m/%Y %H:%M')
-    print(f"Signalement reçu pour : {site} ({now})")
-    user_message = (
-        f"🚨 Faux positif signalé sur SafeBrowse AI : **{site}**\n"
-        f"🕒 {now}"
-    )
+
+    # Personnalisation du message
+    if type_fp == "phishing":
+        titre = "🛑 Phishing"
+        msg = f"{titre} : le site **{site}** est signalé comme faux positif.\n🕒 {now}"
+    elif type_fp == "adulte":
+        titre = "🔞 Adulte"
+        msg = f"{titre} : le site **{site}** est signalé comme faux positif.\n🕒 {now}"
+    else:
+        titre = "🚩 Autre"
+        msg = f"{titre} : le site **{site}** est signalé comme faux positif.\n🕒 {now}"
+
+    print(f"Signalement reçu pour : {site} ({now}) [{type_fp}]")
     try:
-        r = requests.post(DISCORD_WEBHOOK_URL, json={"content": user_message})
+        r = requests.post(DISCORD_WEBHOOK_URL, json={"content": msg})
         if r.status_code in (200, 204):
             return jsonify({"success": True})
         else:
