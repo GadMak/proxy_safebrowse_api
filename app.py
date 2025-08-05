@@ -48,11 +48,11 @@ DISCORD_WEBHOOK_URL = os.environ.get("DISCORD_WEBHOOK_URL") or "https://discord.
 def report_false_positive():
     data = request.json
     site = data.get('site', 'Non renseigné')
-    print(f"Signalement reçu pour : {site}")  # Log console
+    print(f"Signalement reçu pour : {site}")
     user_message = f"🚨 Faux positif signalé sur SafeBrowse AI : **{site}**"
     try:
         r = requests.post(DISCORD_WEBHOOK_URL, json={"content": user_message})
-        if r.status_code in (200, 204):   # Discord peut parfois répondre 200 ou 204
+        if r.status_code in (200, 204):
             return jsonify({"success": True})
         else:
             print(f"Erreur Discord : {r.text}")
