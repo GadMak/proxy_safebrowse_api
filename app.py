@@ -1,17 +1,14 @@
-# app.py
-
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import pickle
 import numpy as np
 import os
-from email.message import EmailMessage
-import smtplib
+import requests
 
 app = Flask(__name__)
 CORS(app)
 
-# === Partie IA ===
+# === Partie IA (inchangée) ===
 FEATURE_COLS = [
     "URLSimilarityIndex", "CharContinuationRate", "URLCharProb", "SpacialCharRatioInURL",
     "IsHTTPS", "HasTitle", "DomainTitleMatchScore", "URLTitleMatchScore", "HasFavicon",
@@ -44,32 +41,25 @@ def predict():
     }
     return jsonify(result)
 
-# === Partie Email (toutes les infos depuis les variables d'environnement) ===
-YOUR_EMAIL    = os.environ.get("YOUR_EMAIL")
-SMTP_SERVER   = os.environ.get("SMTP_SERVER")
-SMTP_PORT     = int(os.environ.get("SMTP_PORT", 587))
-SMTP_LOGIN    = os.environ.get("SMTP_LOGIN")
-SMTP_PASSWORD = os.environ.get("SMTP_PASSWORD")
+# === Partie Signalement Discord ===
+DISCORD_WEBHOOK_URL = os.environ.get("DISCORD_WEBHOOK_URL") or "https://discord.com/api/webhooks/1401747675845492858/UNJgNglUvTa27M-TuKEm4UqeDfl04lA0gAO0zi-MGsIczMO__eSAkcMK1JNnwTPmo509"
 
 @app.route('/report-false-positive', methods=['POST'])
 def report_false_positive():
     data = request.json
     site = data.get('site', 'Non renseigné')
-    user_message = f"Le site {site} est signalé faux positif."
-    msg = EmailMessage()
-    msg['Subject'] = "Signalement Faux Positif SafeBrowse AI"
-    msg['From'] = SMTP_LOGIN
-    msg['To'] = YOUR_EMAIL
-    msg.set_content(user_message)
+    print(f"Signalement reçu pour : {site}")  # Log console
+    user_message = f"🚨 Faux positif signalé sur SafeBrowse AI : **{site}**"
     try:
-        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
-            server.starttls()
-            server.login(SMTP_LOGIN, SMTP_PASSWORD)
-            server.send_message(msg)
-        return {"success": True}
+        r = requests.post(DISCORD_WEBHOOK_URL, json={"content": user_message})
+        if r.status_code in (200, 204):   # Discord peut parfois répondre 200 ou 204
+            return jsonify({"success": True})
+        else:
+            print(f"Erreur Discord : {r.text}")
+            return jsonify({"success": False, "error": r.text}), 500
     except Exception as e:
-        print(e)
-        return {"success": False, "error": str(e)}, 500
+        print("Erreur Discord :", e)
+        return jsonify({"success": False, "error": str(e)}), 500
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
